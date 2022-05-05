@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+  <form action="" method="POST">
+    {% csrf_token %}
+      {{form.url}}
+      <button type="submit">Shorten</button>
+  </form>
+
+  {% if errors %}
+  <p>{{errors}}</p>
+  {% endif %}
+
+  {% if new_url %}
+  <p><b>Short URL:</b> <input size="80" value="{{new_url}}"></p>
+  <p><b>Original URL:</b> <a href="{{existing_url}}" target="_blank">{{existing_url}}</a></p>
+  <p>Was used <b>{{times_followed}}</b> times</p>
+  {% endif %}
+
+{% endblock body %}

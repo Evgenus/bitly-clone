@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "bitly-clone"
+version = "0.1.0"
+description = ""
+authors = ["Eugene Chernyshov <chernyshov.eugene@gmail.com>"]
+readme = "README.md"
+packages = [{include = "bitly_clone"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+Django = "^4.0.4"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
