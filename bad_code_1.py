@@ -1,74 +1,78 @@
 import re
-import datetime
-from collections import OrderedDict
+from datetime import datetime
 
-def create_racer_abbreviations_dict(file_name):
+
+ABBREVIATIONS_LINE_FORMAT = re.compile(r'^(\w+)_([a-zA-Z\s]+)_([a-zA-Z\s]+)$')
+
+
+def create_racer_abbreviations(filename):
     """Retrieves {'abbreviation': (name, team)}" format dict from abbreviations.txt"""
-    abbreviations_dict = {}
-    with open(file_name, 'r') as fn:
+    abbreviations = {}
+    with open(filename, 'r') as fn:
         for line in fn:
-            matchObj = re.match(r'^(\w+)_([a-zA-Z\s]+)_([a-zA-Z\s]+)$', line)
-            # group(1) is abbreviation, i.e 'SVM'
-            abbreviations_dict[matchObj.group(1)] = (
-                matchObj.group(2),  # name of a pilot
-                matchObj.group(3).rstrip(),  # team
-            )
-    return abbreviations_dict
+            match_obj = ABBREVIATIONS_LINE_FORMAT.match(line)
+            abbr, name, team = match_obj.groups()
+            abbreviations[abbr] = (name,  team.rstrip())
+
+    return abbreviations
 
 
-# {'abbreviation of pilot': ('name of pilot, 'team')}
-abbr_dict = create_racer_abbreviations_dict(
-    'abbreviations.txt')
+TIMING_LINE_FORMAT = re.compile(r'^([A-Z]+).*(\d{2}:\d+:\d+\.\d+)$')
 
 
-# returns timing log from start.log or end.log in {'abbreviation': time} format
-def retrieve_timings_from_log(file_name):
+def retrieve_timings_from_log(filename):
+    """returns timing log from start.log or end.log in {'abbreviation': time} format"""
     timing_log = {}
-    with open(file_name, 'r') as fn:
+    with open(filename, 'r') as fn:
         for line in fn:
             # matches 2 groups: abbreviation of a racer and time
-            matchObj = re.match(r'^([A-Z]+).*(\d{2}:\d+:\d+\.\d+)$', line)
+            match_obj = TIMING_LINE_FORMAT.match(line)
+            key, raw_time = match_obj.groups()
             # converts time from a string to datetime object
-            lap_time = datetime.datetime.strptime(
-                matchObj.group(2).rstrip(), '%H:%M:%S.%f')
+            lap_time = datetime.strptime(raw_time.rstrip(), '%H:%M:%S.%f')
             # adds key, value to a timing_log
-            timing_log[matchObj.group(1)] = lap_time
+            timing_log[key] = lap_time
+
     return timing_log
 
 
-start_timings = retrieve_timings_from_log('start.log')
-end_timings = retrieve_timings_from_log('end.log')
-
-
-def sorted_individual_results(start_timings_, end_timings_, abbr_dict_, reverse_order=False):
-    """ 
-    Receives start and end timings and returns an OrderedDict with 
+def sorted_individual_results(start_timings, end_timings, reverse_order=False):
+    """
+    Receives start and end timings and returns an OrderedDict with
     {abbreviations:timedeltas}
     """
     # creating dict with best lap results
-    lap_results = {key: end_timings_[key] - start_timings_.get(key, 0)
-                   for key in start_timings_.keys()}
-    sorted_results = dict(
-        sorted(lap_results.items(), key=lambda x: x[1], reverse=reverse_order))
+    lap_results = {
+        key: end_timings[key] - start_timings[key]
+        for key, value in start_timings.items()
+    }
+    sorted_results = dict(sorted(
+        lap_results.items(),
+        key=lambda x: x[1],
+        reverse=reverse_order,
+    ))
     return sorted_results
 
 
-sorted_lap_results = sorted_individual_results(
-    start_timings, end_timings, abbr_dict)
-
-# prints result board to a console
-def print_result_board(sorted_lap_results_):
-    counter = 1
-    for key, value in sorted_lap_results_.items():
-        racer_name = abbr_dict[key][0]
-        team_name = abbr_dict[key][1]
+def print_result_board(sorted_lap_results, abbreviations):
+    """prints result board to a console"""
+    for counter, (key, value) in enumerate(sorted_lap_results.items(), start=1):
+        racer_name, team_name = abbreviations[key]
         best_time = str(value)[2:-3]
-        print(("{: <3} {: <18} | {: <30}  | {}".format(
-            str(counter)+'.', racer_name, team_name, best_time)))
+        counter_str = str(counter) + '.'
+        print(f"{counter_str: <3} {racer_name: <18} | {team_name: <30}  | {best_time}")
         if counter == 15:
-            print(
-                '----------------------------------------------------------------------')
-        counter += 1
+            print('-' * 70)
 
 
-print_result_board(sorted_lap_results)
+def main():
+    start_timings = retrieve_timings_from_log('start.log')
+    end_timings = retrieve_timings_from_log('end.log')
+    # {'abbreviation of pilot': ('name of pilot, 'team')}
+    abbreviations = create_racer_abbreviations('abbreviations.txt')
+    sorted_lap_results = sorted_individual_results(start_timings, end_timings)
+    print_result_board(sorted_lap_results, abbreviations)
+
+
+if __name__ == '__main__':
+    main()
