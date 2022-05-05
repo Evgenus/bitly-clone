@@ -37,3 +37,6 @@ class ShortenerTests(TestCase):
         self.assertRedirects(response, self.TEST_URL, status_code=302, fetch_redirect_response=False)
         changed = Shortener.objects.get(url=self.TEST_URL)
         self.assertEqual(changed.times_followed, 1)
+        response = self.client.post(reverse('home'), {'url': self.TEST_URL})
+        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.context['times_followed'], 1)
